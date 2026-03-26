@@ -16,6 +16,9 @@ El conjunto de datos original contiene registros históricos de solicitudes de c
 Los datos originales se pueden encontrar [aquí]
 (https://www.kaggle.com/datasets/laotse/credit-risk-dataset)
 
+ El conjunto de datos visualizado presenta 13 columnas estructuradas que capturan el perfil demográfico, la información financiera y el comportamiento de pago de los solicitantes.
+
+![image](https://github.com/alexander9484/-SQL-SERVER-PROJECT-CREDIT-RISK/blob/main/Picture/Table_credit_risk.png?raw=true)
 **Diccionario de variables clave:**
 * `person_age` / `person_income`: Edad e ingresos anuales del solicitante.
 * `person_home_ownership`: Situación de vivienda (RENT, OWN, MORTGAGE).
@@ -26,6 +29,7 @@ Los datos originales se pueden encontrar [aquí]
 * `loan_status`: Variable objetivo (0 = Pagado, 1 = Default/Mora).
 * `loan_percent_income`: Ratio Deuda-Ingreso (DTI).
 * `cb_person_default_on_file`: Historial previo de impago (Y/N).
+* `loan_id`: ID del préstamo 
 
 ## Tareas (Task)
 
@@ -81,7 +85,9 @@ ORDER BY Total_Loans DESC;
 
 _Volumen de préstamos y montos promedio agrupados por propósito_
 
-Esto permite al negocio entender qué necesidades fundamentales están financiando (ej. educación, salud) y en qué categorías se encuentra el mayor volumen de capital en riesgo.
+El mayor volumen de operaciones y capital prestado se concentra en necesidades esenciales como Educación (6,453 préstamos) y Salud (6,071). Sin embargo, aunque la categoría de Mejoras del Hogar es la que tiene menos solicitudes, presenta el ticket promedio más alto de todo el portafolio (>$10,360). 
+
+Esto indica que el banco debe enfocar sus estrategias de retención y marketing en servicios vitales, pero aplicar controles de riesgo más estrictos en los préstamos para el hogar debido a su alto impacto individual en el capital.
 
 ### Pregunta #2: ¿Cuál es la tasa de morosidad según la calificación de riesgo asignada?
 Calculé el porcentaje de préstamos en mora agrupados por su grado de riesgo (loan_grade). Utilicé la función CAST para convertir el estado del préstamo a FLOAT y así obtener un promedio decimal exacto con la función AVG, que luego multipliqué por 100.
@@ -102,7 +108,9 @@ ORDER BY loan_grade;
 
 _Porcentaje de impagos clasificado por grado de riesgo (A-G)_
 
-Esto valida si el sistema de scoring inicial del banco funciona correctamente: lógicamente, los grados de riesgo más bajos (como F o G) deberían mostrar mayores tasas de impago que los grados A o B.
+Los datos validan la eficacia del sistema de scoring interno: la tasa de morosidad crece exponencialmente a medida que empeora la calificación. Mientras que los clientes de Grado A mantienen un riesgo bajo (9.96%), existe un punto de quiebre alarmante a partir del Grado D, donde el impago se dispara al 59.05%. Peor aún, el Grado G representa una pérdida de capital casi garantizada (98.44%). 
+
+Estratégicamente, el banco debe utilizar este hallazgo para establecer un "corte" en sus políticas de riesgo, exigiendo garantías adicionales o rechazando automáticamente solicitudes a partir del Grado D.
 
 ### Pregunta #3: ¿Cómo varían el ingreso promedio y el monto solicitado según la situación de vivienda del cliente?
 
@@ -124,7 +132,9 @@ ORDER BY Avg_Income DESC;
 
 _Ingreso y montos solicitados promedio por propiedad de vivienda_
 
-Generalmente, los propietarios y quienes pagan hipoteca suelen tener un perfil financiero más sólido y solicitan montos más altos en comparación con los clientes que alquilan vivienda.
+La cartera está dominada por inquilinos (RENT: 16,446) y clientes con hipoteca (MORTGAGE: 13,444). Estos últimos demuestran mayor solvencia patrimonial: ganan significativamente más (~$81K vs ~$55K) y solicitan préstamos más altos (~$10.5K vs ~$8.8K). 
+
+Estratégicamente, el banco debería enfocar ofertas de crédito premium en el segmento hipotecario y mantener límites de riesgo más conservadores para los inquilinos.
 
 ### Pregunta #4: ¿Cuál es la tasa de mora en clientes sobreendeudados con un historial crediticio corto?
 
@@ -135,7 +145,7 @@ Aislé un segmento de alto riesgo filtrando con la cláusula WHERE a los cliente
 
 SELECT COUNT(*) AS High_Risk_Profile_Count,
     ROUND(AVG(CAST(loan_status AS FLOAT)) * 100, 2) AS Default_Rate_Pct
-FROM credit_risk_data
+FROM credit_risk_dataset
 WHERE loan_percent_income > 0.40 
     AND cb_person_cred_hist_length < 3;
 ```
@@ -144,7 +154,9 @@ WHERE loan_percent_income > 0.40
 
 _Métricas de riesgo para clientes sobreendeudados con historial reciente_
 
-Esta consulta identifica un micro-segmento altamente tóxico. Si la morosidad aquí es alarmante, el comité de crédito debería endurecer o crear reglas de rechazo automático para este perfil específico.
+Aislar a los clientes sobreendeudados (Ratio Deuda-Ingreso > 40%) con un historial crediticio corto (< 3 años) reveló un micro-segmento de 208 perfiles con una alarmante tasa de mora del 74.52%. Prestar a este perfil representa una pérdida casi segura, ya que 3 de cada 4 solicitantes no pagan. 
+
+Estratégicamente, el banco debe configurar una regla de rechazo automático (hard stop) en su motor de riesgo para cualquier nueva solicitud que presente esta combinación de factores.
 
 ### Pregunta #5: ¿Cómo afecta el nivel de la tasa de interés asignada al cumplimiento de pago?
 
@@ -161,7 +173,7 @@ WITH Interest_Bands AS (
             ELSE '3. Alta (>15%)' 
         END AS Interest_Band,
         loan_status
-    FROM credit_risk_data
+    FROM credit_risk_dataset
     WHERE loan_int_rate IS NOT NULL
 )
 SELECT Interest_Band, 
@@ -176,7 +188,9 @@ ORDER BY Interest_Band;
 
 _Tasa de incumplimiento clasificada por niveles de interés_
 
-Esto demuestra el efecto de selección adversa: las tasas excesivamente altas, pensadas originalmente para mitigar el riesgo, a menudo terminan ahogando la capacidad de pago del cliente y provocando el impago.
+Las tasas de interés excesivas asfixian la capacidad de pago del cliente. Mientras los préstamos con tasas bajas (<10%) tienen una morosidad controlada (10.8%), aquellos con tasas mayores al 15% fracasan el 58% de las veces. 
+
+Estratégicamente, el banco debe establecer topes en su política de pricing, ya que intentar compensar a perfiles riesgosos cobrándoles tasas altas resulta contraproducente y genera pérdidas.
 
 ### Pregunta #6: ¿Existe una relación directa entre los años de estabilidad laboral y el riesgo de impago?
 
@@ -209,7 +223,9 @@ ORDER BY Default_Rate_Pct DESC;
 
 _Riesgo de incumplimiento según niveles de experiencia en el empleo actual_
 
-Se verifica la hipótesis bancaria clásica: a mayor estabilidad en el empleo actual, suele existir una tendencia hacia una menor probabilidad de caer en mora.
+Existe una clara correlación entre la experiencia laboral y el cumplimiento de pago: a mayor antigüedad, menor riesgo. Los perfiles "Junior" (0-2 años) concentran el mayor volumen de la cartera pero presentan la morosidad más alta (27.05%). En contraste, los clientes "Estables" (+10 años) son los más seguros (16.25%). 
+
+Estratégicamente, el banco debería ofrecer tasas preferenciales y campañas específicas para atraer al segmento estable (que actualmente tiene el menor volumen), mientras aplica filtros más rigurosos a los perfiles de reciente contratación.
 
 ### Pregunta #7: ¿Cuál es la probabilidad de impago en jóvenes con bajos ingresos y manchas crediticias previas?
 
@@ -230,7 +246,9 @@ WHERE person_age < 25
 
 _Análisis de reincidencia en perfiles jóvenes vulnerables_
 
-Este análisis evalúa numéricamente el riesgo de dar "segundas oportunidades". Ayuda a definir si este nicho de mercado es eventualmente rentable o si genera exclusivamente pérdidas financieras.
+El análisis aisló a 1,082 solicitantes que cumplen con un perfil crítico: jóvenes (<25 años), con bajos ingresos y antecedentes de impago. Este grupo presenta una altísima tasa de reincidencia del 50.65%. Estratégicamente, los datos demuestran que dar "segundas oportunidades" a este nicho es un riesgo inaceptable (es literalmente lanzar una moneda al aire). 
+
+El banco debe configurar su motor de decisiones para rechazar automáticamente estas solicitudes o, como alternativa estricta, exigir un aval o garante con excelente solvencia.
 
 ### Pregunta #8: Identificar los 3 préstamos en mora con las peores tasas de interés dentro de cada propósito de préstamo.
 
@@ -261,7 +279,9 @@ WHERE Rank_Idx <= 3;
 
 _Ranking de los peores créditos segmentados por categoría_
 
-Resulta ser una herramienta invaluable para las auditorías internas, ya que permite revisar a detalle los expedientes individuales que resultaron en impagos severos bajo condiciones iniciales altamente punitivas.
+Al auditar los peores créditos por categoría, destaca que todos los impagos críticos comparten tasas de interés extremas (>20%). Curiosamente, cayeron en mora incluso clientes con ingresos altísimos (ej. $288k). 
+
+Estratégicamente, esto demuestra que un alto ingreso no garantiza el pago si la deuda es asfixiante, sugiriendo al banco evitar o rechazar aprobaciones con tasas punitivas superiores al 20%.
 
 ### Pregunta #9: ¿Existen solicitudes atípicas que superen el doble del monto promedio solicitado por clientes de su mismo segmento?
 
@@ -291,7 +311,9 @@ ORDER BY Total_Anomalies DESC;
 
 _Conteo y monto promedio de préstamos atípicos (outliers) agrupados por segmento_
 
-Al agrupar las solicitudes atípicas, identificamos rápidamente en qué propósitos de préstamo y niveles de riesgo se concentran los intentos de fraude o sobreendeudamiento extremo. Esta lógica actúa como una alerta temprana y gerencial clave, permitiendo al equipo de prevención auditar bloques de alto riesgo en lugar de perderse en un listado interminable de casos aislados.
+Sorprendentemente, la mayor cantidad de anomalías (montos solicitados que superan el doble del promedio de su segmento) se concentra en perfiles con buena calificación crediticia (Grados B y A), liderados por préstamos Médicos y Personales. 
+
+Estratégicamente, esto indica que el equipo de prevención de fraudes no debe confiarse ciegamente de un buen scoring: estos clientes "seguros" son quienes están realizando las solicitudes atípicas más frecuentes y costosas (~$23k), por lo que requieren auditorías manuales obligatorias.
 
 ### Pregunta #10: ¿Cómo es el comportamiento de pago si dividimos a la población equitativamente en cuatro grupos según sus ingresos?
 
@@ -321,7 +343,9 @@ ORDER BY Income_Quartile;
 
 _Tasa de morosidad y ticket promedio agrupados por cuartiles de ingresos_
 
-Ofrece una visión macro y estratégica vital para fijar políticas de precios basados en riesgo (Risk-Based Pricing). Permite visualizar sin sesgos qué estrato poblacional está inyectando capital al banco y cuál sector representa las mayores pérdidas.
+Existe una relación lineal perfecta entre el nivel de ingresos y el cumplimiento de pago. El Cuartil 1 (ingresos menores a $38.5k) representa el mayor peligro para la cartera, con una tasa de mora crítica del 39.73% (prácticamente 4 de cada 10 no pagan). En contraste, el Cuartil 4 (ingresos superiores a $79.2k) es el segmento estrella: solicitan los préstamos más altos (~$13k) y mantienen la morosidad más baja (9.13%). 
+
+Estratégicamente, el banco debe restringir el crédito sin garantías en el primer cuartil y enfocar sus esfuerzos comerciales en fidelizar al cuarto cuartil, que es el verdadero motor de rentabilidad.
 
 ### Conclusión
 Este análisis estructurado proporcionó respuestas contundentes sobre el portafolio de créditos. Logramos validar que variables como la relación Deuda-Ingreso (DTI), las altas tasas de interés y los historiales de mora previos son fuertes detractores del cumplimiento de pago.
