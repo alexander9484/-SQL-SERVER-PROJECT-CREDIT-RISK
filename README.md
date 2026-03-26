@@ -97,6 +97,9 @@ FROM credit_risk_dataset
 GROUP BY loan_grade
 ORDER BY loan_grade;
 ```
+
+![image](https://github.com/alexander9484/-SQL-SERVER-PROJECT-CREDIT-RISK/blob/main/Picture/P2.png?raw=true)
+
 _Porcentaje de impagos clasificado por grado de riesgo (A-G)_
 
 Esto valida si el sistema de scoring inicial del banco funciona correctamente: lógicamente, los grados de riesgo más bajos (como F o G) deberían mostrar mayores tasas de impago que los grados A o B.
@@ -116,6 +119,9 @@ FROM credit_risk_dataset
 GROUP BY person_home_ownership
 ORDER BY Avg_Income DESC;
 ```
+
+![image](https://github.com/alexander9484/-SQL-SERVER-PROJECT-CREDIT-RISK/blob/main/Picture/P3.png?raw=true)
+
 _Ingreso y montos solicitados promedio por propiedad de vivienda_
 
 Generalmente, los propietarios y quienes pagan hipoteca suelen tener un perfil financiero más sólido y solicitan montos más altos en comparación con los clientes que alquilan vivienda.
@@ -133,6 +139,9 @@ FROM credit_risk_data
 WHERE loan_percent_income > 0.40 
     AND cb_person_cred_hist_length < 3;
 ```
+
+![image](https://github.com/alexander9484/-SQL-SERVER-PROJECT-CREDIT-RISK/blob/main/Picture/P4.png?raw=true)
+
 _Métricas de riesgo para clientes sobreendeudados con historial reciente_
 
 Esta consulta identifica un micro-segmento altamente tóxico. Si la morosidad aquí es alarmante, el comité de crédito debería endurecer o crear reglas de rechazo automático para este perfil específico.
@@ -162,6 +171,9 @@ FROM Interest_Bands
 GROUP BY Interest_Band
 ORDER BY Interest_Band;
 ```
+
+![image](https://github.com/alexander9484/-SQL-SERVER-PROJECT-CREDIT-RISK/blob/main/Picture/P5.png?raw=true)
+
 _Tasa de incumplimiento clasificada por niveles de interés_
 
 Esto demuestra el efecto de selección adversa: las tasas excesivamente altas, pensadas originalmente para mitigar el riesgo, a menudo terminan ahogando la capacidad de pago del cliente y provocando el impago.
@@ -192,6 +204,9 @@ FROM Employment_Bands
 GROUP BY Emp_Length_Band
 ORDER BY Default_Rate_Pct DESC;
 ```
+
+![image](https://github.com/alexander9484/-SQL-SERVER-PROJECT-CREDIT-RISK/blob/main/Picture/P6.png?raw=true)
+
 _Riesgo de incumplimiento según niveles de experiencia en el empleo actual_
 
 Se verifica la hipótesis bancaria clásica: a mayor estabilidad en el empleo actual, suele existir una tendencia hacia una menor probabilidad de caer en mora.
@@ -210,6 +225,9 @@ WHERE person_age < 25
     AND person_income < 50000 
     AND cb_person_default_on_file = 'Y';
 ```
+
+![image](https://github.com/alexander9484/-SQL-SERVER-PROJECT-CREDIT-RISK/blob/main/Picture/P7.png?raw=true)
+
 _Análisis de reincidencia en perfiles jóvenes vulnerables_
 
 Este análisis evalúa numéricamente el riesgo de dar "segundas oportunidades". Ayuda a definir si este nicho de mercado es eventualmente rentable o si genera exclusivamente pérdidas financieras.
@@ -238,6 +256,9 @@ SELECT loan_intent,
 FROM RankedLoans
 WHERE Rank_Idx <= 3;
 ```
+
+![image](https://github.com/alexander9484/-SQL-SERVER-PROJECT-CREDIT-RISK/blob/main/Picture/P8.png?raw=true)
+
 _Ranking de los peores créditos segmentados por categoría_
 
 Resulta ser una herramienta invaluable para las auditorías internas, ya que permite revisar a detalle los expedientes individuales que resultaron en impagos severos bajo condiciones iniciales altamente punitivas.
@@ -265,6 +286,9 @@ WHERE loan_amnt > (2 * Avg_Segment_Amnt)
 GROUP BY loan_intent, loan_grade
 ORDER BY Total_Anomalies DESC;
 ```
+
+![image](https://github.com/alexander9484/-SQL-SERVER-PROJECT-CREDIT-RISK/blob/main/Picture/P9.png?raw=true)
+
 _Conteo y monto promedio de préstamos atípicos (outliers) agrupados por segmento_
 
 Al agrupar las solicitudes atípicas, identificamos rápidamente en qué propósitos de préstamo y niveles de riesgo se concentran los intentos de fraude o sobreendeudamiento extremo. Esta lógica actúa como una alerta temprana y gerencial clave, permitiendo al equipo de prevención auditar bloques de alto riesgo en lugar de perderse en un listado interminable de casos aislados.
@@ -292,6 +316,9 @@ FROM IncomeQuartiles
 GROUP BY Income_Quartile
 ORDER BY Income_Quartile;
 ```
+
+![image](https://github.com/alexander9484/-SQL-SERVER-PROJECT-CREDIT-RISK/blob/main/Picture/P10.png?raw=true)
+
 _Tasa de morosidad y ticket promedio agrupados por cuartiles de ingresos_
 
 Ofrece una visión macro y estratégica vital para fijar políticas de precios basados en riesgo (Risk-Based Pricing). Permite visualizar sin sesgos qué estrato poblacional está inyectando capital al banco y cuál sector representa las mayores pérdidas.
